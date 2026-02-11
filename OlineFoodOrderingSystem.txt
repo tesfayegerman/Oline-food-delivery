@@ -1,0 +1,341 @@
+// Import classes for handling date and time.
+// LocalDateTime allows working with date and time without time zone.
+// DateTimeFormatter is used to format and parse date-time objects into strings and vice versa.
+import java.util.*; // Import all classes from the java.util package for collections and Scanner
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+// Abstract base class representing a general user
+abstract class User {
+    String username, password, phone, email, address; // User's personal info fields
+
+    // Constructor to initialize user details
+    public User(String u, String p, String ph, String e, String a) {
+        username = u; 
+        password = p; 
+        phone = ph; 
+        email = e; 
+        address = a;
+    }
+
+    // Abstract method that each subclass will implement to show menu options
+    abstract void displayMenu();
+}
+
+// Customer class that extends User
+class Customer extends User {
+    Cart cart = new Cart(); // Each customer has their own shopping cart
+
+    // Constructor to initialize a customer with user details
+    public Customer(String u, String p, String ph, String e, String a) {
+        super(u, p, ph, e, a); // Call parent constructor
+    }
+
+    // Implementation of displayMenu specifically for customers
+    void displayMenu() {
+        System.out.println("1. Browse Food\n2. Browse Drinks\n3. View Cart\n4. Checkout\n5. Logout");
+    }
+}
+
+// Admin class that extends User
+class Admin extends User {
+    // Constructor to initialize an admin with user details
+    public Admin(String u, String p, String ph, String e, String a) {
+        super(u, p, ph, e, a); // Call parent constructor
+    }
+
+    // Implementation of displayMenu specifically for administrators
+    void displayMenu() {
+        System.out.println("1. Add Item\n2. Update Item\n3. Remove Item\n4. View Orders\n5. Logout");
+    }
+}
+
+// Class representing a food or drink item
+class FoodItem {
+    int id; // Unique identifier for the menu item
+    String name, category; // Name and category (Food/Drink)
+    double price; // Price of the item
+
+    // Constructor to initialize food item details
+    public FoodItem(int i, String n, double p, String c) {
+        id = i;
+        name = n;
+        price = p;
+        category = c;
+    }
+
+    // Override toString method to display food item details
+    public String toString() {
+        return id + ". " + name + " - " + price + " ETB (" + category + ")";
+    }
+}
+
+// Class representing a customer's shopping cart
+class Cart {
+    List<FoodItem> items = new ArrayList<>(); // List of items in the cart
+
+    // Method to add an item to the cart
+    void addItem(FoodItem item) {
+        items.add(item);
+        System.out.println(item.name + " added to cart.");
+    }
+
+    // Method to view all items in the cart
+    void viewCart() {
+        if (items.isEmpty()) { // Check if cart is empty
+            System.out.println("Your cart is empty."); return; // Inform user if empty
+        }
+        double total = 0; // Initialize total cost
+        System.out.println("Your Cart:");
+        for (FoodItem item : items) {
+            System.out.println(item); // Print item details
+            total += item.price; // Sum up prices
+        }
+        System.out.println("Total: " + total + " ETB"); // Show total price
+    }
+
+    // Method to check if cart is empty
+    boolean isEmpty() {
+        return items.isEmpty();
+    }
+
+    // Method to perform checkout, returning total amount and clearing cart
+    double checkout() {
+        double total = items.stream().mapToDouble(i -> i.price).sum(); // Sum prices
+        items.clear(); // Clear items after checkout
+        return total; // Return total amount
+    }
+}
+
+// Define a class representing a customer order
+class Order {
+    static int counter = 1; // Static variable to keep track of the total number of orders, used to generate unique order IDs
+
+    int orderId;             // Unique identifier for each order
+    String customer;         // Name of the customer who placed the order
+    String status = "Pending"; // Current status of the order, defaulting to "Pending"
+    double amount;           // Total amount for the order
+
+    String orderDate;        // String to store formatted date and time when the order was placed
+    String deliveryTime;     // String to store estimated delivery time
+
+    // Constructor to initialize a new order with customer name and amount
+    public Order(String c, double a) {
+        orderId = counter++; // Assign current counter value as order ID and then increment counter
+
+        customer = c;        // Set the customer name
+        amount = a;          // Set the order amount
+
+        // Capture the current date and time
+        LocalDateTime now = LocalDateTime.now();
+
+        // Define a formatter for date and time in "yyyy-MM-dd HH:mm" format
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+        // Format current date and time and assign to orderDate
+        orderDate = now.format(dtf);
+
+        // Calculate estimated delivery time, set to 1 hour from now, and format it
+        deliveryTime = now.plusHours(1).format(dtf);
+    }
+
+    // Method to represent the order details as a string
+    public String toString() {
+        return "Order#" + orderId + " by " + customer +
+               " - " + amount + " ETB - Status: " + status +
+               "\n  Ordered at: " + orderDate +
+               "\n  Estimated Delivery: " + deliveryTime;
+    }
+}
+
+// Main class for the online food ordering system
+public class OnlineFoodOrderingSystem {
+    static List<User> users = new ArrayList<>(); // List of all users
+    static List<FoodItem> menu = new ArrayList<>(); // Food and drink menu
+    static List<Order> orders = new ArrayList<>(); // List of all orders
+    static Scanner scanner = new Scanner(System.in); // Scanner for user input
+
+    public static void main(String[] args) {
+        // Add default admin to users list
+        users.add(new Admin("admin", "admin", "0000000000", "admin@hotel.com", "Admin HQ"));
+
+        seedMenu(); // Populate menu with predefined items
+        System.out.println("Welcome to MESKEREM HOTEL Online Food Ordering!");
+
+        while (true) { // Infinite loop for main menu
+            System.out.println("1. Register\n2. Login\n3. Exit");
+            int choice = scanner.nextInt(); scanner.nextLine(); // Read user choice
+            if (choice == 1) register(); // Register new user
+            else if (choice == 2) login(); // Login existing user
+            else break; // Exit program
+        }
+    }
+
+    // Method to seed menu with predefined food and drinks
+    static void seedMenu() {
+        String[][] items = {
+            {"Shiro Wet", "200", "Food"}, {"Doro Wet", "1200", "Food"}, {"Normal Tibs", "500", "Food"},
+            {"Kitfo", "550", "Food"}, {"Shekla Tibs", "700", "Food"}, {"Dulet", "300", "Food"},
+            {"Kurkufa", "200", "Food"}, {"Goman Kitfo", "200", "Food"}, {"Tej (1 bottle)", "150", "Drink"},
+            {"Tela (1 bottle)", "100", "Drink"}, {"Black Label", "2000", "Drink"}, {"Guder", "500", "Drink"},
+            {"Awash", "450", "Drink"}, {"Habesha Beer", "60", "Drink"}, {"Mirinda", "50", "Drink"},
+            {"Sprite", "50", "Drink"}, {"Coca Cola", "50", "Drink"}
+        };
+        // Loop through items array and add each to menu list
+        for (int i = 0; i < items.length; i++)
+            menu.add(new FoodItem(i + 1, items[i][0], Double.parseDouble(items[i][1]), items[i][2]));
+    }
+
+    // Method for user registration
+    static void register() {
+        System.out.print("Username: "); String u = scanner.nextLine(); // Read username
+        System.out.print("Password: "); String p = scanner.nextLine(); // Read password
+        System.out.print("Phone: "); String ph = scanner.nextLine(); // Read phone
+        System.out.print("Email: "); String e = scanner.nextLine(); // Read email
+        System.out.print("Address: "); String a = scanner.nextLine(); // Read address
+        users.add(new Customer(u, p, ph, e, a)); // Add new customer to users list
+        System.out.println("Registered successfully."); // Confirm registration
+    }
+
+    // Method for user login
+    static void login() {
+        System.out.print("Username: "); String u = scanner.nextLine(); // Read username
+        System.out.print("Password: "); String p = scanner.nextLine(); // Read password
+        // Loop through all users to find matching credentials
+        for (User user : users) {
+            if (user.username.equals(u) && user.password.equals(p)) {
+                System.out.println("Login successful!"); // Login success message
+                if (user instanceof Customer) customerActions((Customer) user); // Customer actions
+                else adminActions((Admin) user); // Admin actions
+                return; // Exit login method once logged in
+            }
+        }
+        System.out.println("Invalid credentials."); // Inform if login failed
+    }
+
+    // Method to handle customer-specific actions
+    static void customerActions(Customer customer) {
+        while (true) { // Loop for customer menu
+            customer.displayMenu(); // Show menu options
+            int ch = scanner.nextInt(); // Read user's choice
+            // Check if the user's choice is either 1 or 2, representing Food or Drink
+if (ch == 1 || ch == 2) {
+
+    // Use a ternary operator to set 'cat' as "Food" if ch==1, or "Drink" if ch==2
+    String cat = ch == 1 ? "Food" : "Drink";
+
+    // If the category chosen is "Drink", perform age verification
+    if (cat.equals("Drink")) {
+        // Prompt user to enter their birth year and read the input
+        System.out.print("Enter your birth year (e.g., 2005): ");
+        int birthYear = scanner.nextInt();
+
+        // Prompt user to enter their birth month (1-12) and read the input
+        System.out.print("Enter your birth month (1-12): ");
+        int birthMonth = scanner.nextInt();
+
+        // Prompt user to enter their birth day and read the input
+        System.out.print("Enter your birth day: ");
+        int birthDay = scanner.nextInt();
+
+        // Get the current date and time
+        Calendar today = Calendar.getInstance();
+
+        // Calculate preliminary age by subtracting birth year from current year
+        int age = today.get(Calendar.YEAR) - birthYear;
+
+        // Adjust age if the birthday hasn't occurred yet this year
+        if (today.get(Calendar.MONTH) + 1 < birthMonth || // if current month is before birth month
+            (today.get(Calendar.MONTH) + 1 == birthMonth && today.get(Calendar.DAY_OF_MONTH) < birthDay)) {
+            age--; // decrease age by 1 if birthday hasn't occurred yet this year
+        }
+
+        // Check if the user is under 18
+        if (age < 18) {
+            // Inform user they are not old enough for alcoholic drinks
+            System.out.println("Sorry, you must be 18 or older to order alcoholic drinks.");
+            // 'continue' skips to the next iteration of the enclosing loop (assuming this code is inside a loop)
+            continue;
+        }
+    }
+
+    // After passing the age check (or if category is Food), filter the menu for items matching 'cat'
+    menu.stream().filter(i -> i.category.equals(cat)).forEach(System.out::println);
+
+    // Prompt the user to enter an item ID to add to their cart
+    System.out.print("Enter item ID to add (0 to finish): ");
+    int id = scanner.nextInt();
+
+    // If user enters 0, they are finished ordering
+    if (id == 0) {
+        // If the cart is empty, inform user no orders were made
+        if (customer.cart.isEmpty())
+            System.out.println("You have not ordered anything.");
+        else
+            // Otherwise, confirm order and display delivery message
+            System.out.println("Order received! 🚚🍴 MESKEREM HOTEL JINKA");
+        // Exit the loop (assuming this code is inside a loop)
+        break;
+    }
+
+    // Find the item in 'menu' matching the entered ID and add it to the customer's cart if found
+    menu.stream().filter(i -> i.id == id).findFirst().ifPresent(customer.cart::addItem);
+}
+
+             else if (ch == 3) {
+                customer.cart.viewCart(); // View cart contents
+            } else if (ch == 4) { // Proceed to checkout
+                double total = customer.cart.checkout(); // Get total and clear cart
+                if (total == 0) { // If cart was empty
+                    System.out.println("Cart empty. Cannot checkout."); continue; // Skip
+                }
+                // Payment choice
+                System.out.print("Pay now (Y) or COD (N)? ");
+                char pay = scanner.next().charAt(0);
+                // Show message based on payment choice
+                System.out.println((pay == 'Y' || pay == 'y') ? "Payment successful." : "COD selected.");
+                // Add order to order list
+                Order newOrder = new Order(customer.username, total);
+orders.add(newOrder);
+System.out.println("Thank you for ordering! 🚚🍴 MESKEREM HOTEL JINKA");
+System.out.println(newOrder); // This prints the order date and delivery time too
+
+            } else break; // Logout and return to main menu
+        }
+    }
+
+    // Method to handle admin-specific actions
+    static void adminActions(Admin admin) {
+        while (true) { // Loop for admin menu
+            admin.displayMenu(); // Show admin options
+            int ch = scanner.nextInt(); scanner.nextLine(); // Read choice and consume newline
+            if (ch == 1) { // Add new item
+                System.out.print("Item name: "); String name = scanner.nextLine();
+                System.out.print("Price: "); double price = scanner.nextDouble(); scanner.nextLine();
+                System.out.print("Category (Food/Drink): "); String cat = scanner.nextLine();
+                menu.add(new FoodItem(menu.size() + 1, name, price, cat)); // Add item to menu
+                System.out.println("Item added.");
+            } else if (ch == 2) { // Update existing item
+                System.out.print("Item ID to update: "); int id = scanner.nextInt(); scanner.nextLine();
+                // Find item by ID
+                for (FoodItem item : menu) {
+                    if (item.id == id) {
+                        // Read new details
+                        System.out.print("New name: "); item.name = scanner.nextLine();
+                        System.out.print("New price: "); item.price = scanner.nextDouble(); scanner.nextLine();
+                        System.out.print("New category: "); item.category = scanner.nextLine();
+                        System.out.println("Item updated."); // Confirmation
+                    }
+                }
+            } else if (ch == 3) { // Remove item
+                System.out.print("Item ID to remove: ");
+                int id = scanner.nextInt();
+                menu.removeIf(i -> i.id == id); // Remove matching item
+                System.out.println("Item removed.");
+            } else if (ch == 4) { // View all orders
+                if (orders.isEmpty()) System.out.println("No orders yet."); // No orders case
+                else orders.forEach(System.out::println); // Print all orders
+            } else break; // Logout admin
+        }
+    }
+}
